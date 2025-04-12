@@ -1,0 +1,275 @@
+import os
+import random
+import math
+import pygame
+import keyboard
+from os import listdir
+from os.path import isfile, join
+
+#Bat dau Pygame
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 800, 600
+GRID_SIZE = 10
+CELL_SIZE = 40
+
+# Colors
+WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLACK = (0, 0, 0)
+
+# Set up screen
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Ai n hon NLM")
+
+# Functions to draw grid and ships
+def draw_grid():
+    for x in range(0, GRID_SIZE * CELL_SIZE, CELL_SIZE):
+        for y in range(0, GRID_SIZE * CELL_SIZE, CELL_SIZE):
+            pygame.draw.rect(screen, WHITE, (x, y, CELL_SIZE, CELL_SIZE), 1)
+
+def draw_hits(misses, hits):
+    for (x, y) in misses:
+        pygame.draw.circle(screen, RED, (x * CELL_SIZE + CELL_SIZE // 2, y * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 4)
+    for (x, y) in hits:
+        pygame.draw.circle(screen, GREEN, (x * CELL_SIZE + CELL_SIZE // 2, y * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 4)
+
+
+# Function to place ships on the grid
+def place_ships():
+    ships = []
+    occupied = set()  # Set to track occupied positions
+    ship_sizes = [5, 4, 3, 3, 2]  # Ships of different sizes
+
+    for size in ship_sizes:
+        placed = False
+        while not placed:
+            orientation = random.choice(['H', 'V'])
+            x = random.randint(0, GRID_SIZE - 1)
+            y = random.randint(0, GRID_SIZE - 1)
+            ship = []
+
+            if orientation == 'H':
+                if x + size <= GRID_SIZE:  # Ensure the ship fits horizontally
+                    for i in range(size):
+                        if (x + i, y) in occupied:  # Check if the cell is already occupied
+                            break
+                    else:  # If no occupied cells were found
+                        for i in range(size):
+                            ship.append((x + i, y))
+                            occupied.add((x + i, y))  # Mark the position as occupied
+                        placed = True  # The ship is successfully placed
+
+            elif orientation == 'V':
+                if y + size <= GRID_SIZE:  # Ensure the ship fits vertically
+                    for i in range(size):
+                        if (x, y + i) in occupied:  # Check if the cell is already occupied
+                            break
+                    else:  # If no occupied cells were found
+                        for i in range(size):
+                            ship.append((x, y + i))
+                            occupied.add((x, y + i))  # Mark the position as occupied
+                        placed = True  # The ship is successfully placed
+
+        ships.append(ship)
+
+    return ships
+
+#Function to manual place ships on the grid
+def manual_place_ships():
+    ships = []
+    occupied = set()
+    ship_sizes = [5, 4, 3, 3, 2]
+    placing_index = 0
+    orientation = 'H'  # Default orientation
+
+    font = pygame.font.Font(None, 36)
+
+    while placing_index < len(ship_sizes):
+        screen.fill(BLACK)
+        draw_grid()
+
+        # Draw already placed ships
+        for ship in ships:
+            for (x, y) in ship:
+                pygame.draw.rect(screen, BLUE, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+        # Instruction text
+        text = font.render(f"Placing ship of size {ship_sizes[placing_index]} (Press R to Rotate)", True, WHITE)
+        screen.blit(text, (10, HEIGHT - 40))    
+
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    orientation = 'V' if orientation == 'H' else 'H'
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                grid_x = x // CELL_SIZE
+                grid_y = y // CELL_SIZE
+
+                # Try to place ship
+                size = ship_sizes[placing_index]
+                new_ship = []
+
+                valid = True
+                if orientation == 'H':
+                    if grid_x + size <= GRID_SIZE:
+                        for i in range(size):
+                            if (grid_x + i, grid_y) in occupied:
+                                valid = False
+                                break
+                        if valid:
+                            for i in range(size):
+                                new_ship.append((grid_x + i, grid_y))
+                                occupied.add((grid_x + i, grid_y))
+                    else:
+                        valid = False
+
+                elif orientation == 'V':
+                    if grid_y + size <= GRID_SIZE:
+                        for i in range(size):
+                            if (grid_x, grid_y + i) in occupied:
+                                valid = False
+                                break
+                        if valid:
+                            for i in range(size):
+                                new_ship.append((grid_x, grid_y + i))
+                                occupied.add((grid_x, grid_y + i))
+                    else:
+                        valid = False
+
+                if valid:
+                    ships.append(new_ship)
+                    placing_index += 1
+
+    return ships
+
+# Function to handle mouse click for shooting
+def handle_click(event, hits, misses):
+    x, y = event.pos
+    x = x // CELL_SIZE
+    y = y // CELL_SIZE
+    if (x, y) not in hits and (x, y) not in misses:
+        if check_hit(x, y):
+            hits.append((x, y))
+        else:
+            misses.append((x, y))
+
+# Function to check if a shot hits a ship
+def check_hit(x, y):
+    for ship in ships:
+        if (x, y) in ship:
+            return True
+    return False
+
+def show_start_screen():
+    waiting = True
+    font = pygame.font.Font(None, 64)
+    screen.fill(BLACK)
+    text = font.render("Press R for Random Placement", True, WHITE)
+    screen.blit(text, text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 40)))
+    text = font.render("Press M for Manual Placement", True, WHITE)
+    screen.blit(text, text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 40)))
+    pygame.display.update()
+
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    return 'random'
+                elif event.key == pygame.K_m:
+                    return 'manual'
+
+#Function to show a "You Lose" Screen
+def draw_game_over():
+    screen.fill(BLACK)  # Fill the screen with black
+    font = pygame.font.Font(None, 74)  # Create a font object
+    text = font.render("M NIGGER VL!", True, RED)  # Render the text
+    text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))  # Center the text
+    screen.blit(text, text_rect)  # Draw the text on the screen
+    pygame.display.update()  # Update the display
+
+
+#Function to show a "You Win" Screen
+def draw_you_win(misses):
+    screen.fill(BLACK)
+    font_big = pygame.font.Font(None, 74)
+    font_small = pygame.font.Font(None, 36)
+
+    text = font_big.render("NLM NIGGER VL!", True, GREEN)
+    text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    screen.blit(text, text_rect)
+
+    miss_text = font_small.render(f"Misses: {len(misses)}", True, WHITE)
+    miss_rect = miss_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
+    screen.blit(miss_text, miss_rect)
+
+    pygame.display.update()
+
+
+#Counting misses
+def count_misses(misses):
+    return len(misses)
+
+# Main game loop
+def main():
+    running = True
+    hits = []
+    misses = []
+
+    placement_mode = show_start_screen()
+
+    global ships
+    if placement_mode == 'manual':
+        ships = manual_place_ships()
+    else:
+        ships = place_ships()
+
+    while running:
+        screen.fill(BLACK)
+        draw_grid()
+        draw_hits(misses, hits)  # Draw hits and misses
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                handle_click(event, hits, misses)
+
+        #Misses Counter:
+        font = pygame.font.Font(None, 36)
+        miss_text = font.render(f"Misses: {count_misses(misses)}", True, WHITE)
+        screen.blit(miss_text, (10, HEIGHT - 70))  # Adjust position as needed
+
+        # Check if the number of hits exceeds 60
+        if len(misses) > 50:
+            draw_game_over()
+            pygame.time.wait(2000)  # Wait for 2 seconds before closing
+            running = False
+
+        pygame.display.update()
+
+        if len(hits) == 17:
+            draw_you_win(misses)
+            pygame.time.wait(2000)
+            running = False
+
+        pygame.display.update()
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
