@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoardGame Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+        }
+        
+        .game-board {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dice {
+            animation: roll 0.5s ease-out;
+        }
+        
+        @keyframes roll {
+            0% { transform: rotate(0deg) translateY(0); }
+            25% { transform: rotate(90deg) translateY(-20px); }
+            50% { transform: rotate(180deg) translateY(0); }
+            75% { transform: rotate(270deg) translateY(-20px); }
+            100% { transform: rotate(360deg) translateY(0); }
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .player-avatar {
+            transition: all 0.3s ease;
+        }
+        
+        .player-avatar:hover {
+            transform: scale(1.1);
+        }
+        
+        .glow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.7);
+        }
+    </style>
+</head>
+<body class="text-white">
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Login Modal (shown by default) -->
+        <div id="loginModal" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+            <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl transform transition-all">
+                <div class="text-center mb-8">
+                    <i class="fas fa-chess-board text-5xl text-blue-400 mb-4"></i>
+                    <h1 class="text-3xl font-bold mb-2">Game of Races</h1>
+                    <p class="text-gray-300">Kill nigs and Indians</p>
+                </div>
+                
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                        <input type="text" id="username" name="username" 
+                               class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                               placeholder="Enter your username" required>
+                    </div>
+                    
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                        <input type="password" id="password" name="password" 
+                               class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                               placeholder="Enter your password" required>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded">
+                            <label for="remember-me" class="ml-2 block text-sm text-gray-300">Remember me</label>
+                        </div>
+                        
+                        <a href="#" class="text-sm text-blue-400 hover:text-blue-300">Forgot password?</a>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Login
+                    </button>
+                    
+                    <div class="text-center text-gray-400 text-sm">OR</div>
+                    
+                    <button type="button" id="guestBtn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <i class="fas fa-user-secret mr-2"></i> Play as Guest
+                    </button>
+                    
+                    <div class="text-center text-sm text-gray-400">
+                        Don't have an account? <a href="#" class="text-blue-400 hover:text-blue-300">Sign up</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Main Dashboard (hidden by default) -->
+        <div id="dashboard" class="hidden">
+            <!-- Header -->
+            <header class="flex justify-between items-center mb-8">
+                <div class="flex items-center">
+                    <i class="fas fa-chess-board text-3xl text-blue-400 mr-3"></i>
+                    <h1 class="text-2xl font-bold">BoardGame Hub</h1>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 bg-gray-800 px-4 py-2 rounded-full">
+                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center font-bold">
+                            <span id="userInitial">G</span>
+                        </div>
+                        <span id="usernameDisplay" class="font-medium">Guest</span>
+                    </div>
+                    <button id="logoutBtn" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-full transition">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Game Room Section -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Game Rooms</h2>
+                    <button id="createRoomBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition">
+                        <i class="fas fa-plus mr-2"></i> Create Room
+                    </button>
+                </div>
+                
+                <!-- Room Creation Modal (hidden by default) -->
+                <div id="createRoomModal" class="hidden fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+                    <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">Create New Room</h3>
+                            <button id="closeRoomModal" class="text-gray-400 hover:text-white">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Duration</label>
+                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option>10 min</option>
+                                <option>20 min</option>
+                                <option>30 min</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Max Players</label>
+                            <input type="number" min="2" max="8" value="2" 
+                                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Room Visibility</label>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center">
+                                    <input type="radio" name="visibility" value="public" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600">
+                                    <span class="ml-2 text-gray-300">Public</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="visibility" value="private" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600">
+                                    <span class="ml-2 text-gray-300">Private</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button id="generateRoomBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center">
+                            <i class="fas fa-key mr-2"></i> Generate Room Code
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Room Display (after creation) -->
+                <div id="roomSection" class="hidden">
+                    <div class="bg-gray-800 rounded-xl p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="font-medium">Room: <span id="roomCode" class="font-bold text-blue-400">ABCDEF</span></h3>
+                                <p class="text-sm text-gray-400">Waiting for players...</p>
+                            </div>
+                            <button id="copyRoomCode" class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-lg text-sm flex items-center transition">
+                                <i class="fas fa-copy mr-1"></i> Copy
+                            </button>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-300 mb-2">Players (1/2)</h4>
+                            <div class="flex space-x-3">
+                                <div class="player-avatar w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center font-bold text-lg">
+                                    <span id="playerInitial">G</span>
+                                </div>
+                                <div class="player-avatar w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-gray-500">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <button id="startGameBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition disabled:opacity-50" disabled>
+                                <i class="fas fa-play mr-2"></i> Start Game
+                            </button>
+                            <button id="leaveRoomBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center transition">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Leave Room
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Available Rooms List -->
+                <div id="availableRooms" class="space-y-3">
+                    <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+                        <div>
+                            <h3 class="font-medium">Sniggers Room</h3>
+                            <p class="text-sm text-gray-400">Code: X7Y9Z2</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="text-sm text-gray-300">
+                                <i class="fas fa-users mr-1"></i> 1/2
+                            </div>
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-sm transition">
+                                Join
+                            </button>
+                        </div>
+                    </div>
+                    
+                    
+                    <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center opacity-50">
+                        <div>
+                            <h3 class="font-medium">Private Game</h3>
+                            <p class="text-sm text-gray-400">Code: PRIVATE</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="text-sm text-gray-300">
+                                <i class="fas fa-lock mr-1"></i> 2/2
+                            </div>
+                            <button class="bg-gray-600 text-gray-400 px-3 py-1 rounded-lg text-sm cursor-not-allowed">
+                                Full
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Board Placeholder -->
+            <div id="gameBoard" class="hidden">
+                <div class="game-board rounded-xl p-6 mb-6">
+                    <div class="text-center py-12">
+                        <h3 class="text-xl font-semibold mb-2">Game Board</h3>
+                        <p class="text-gray-400">Game functionality would be implemented here</p>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center space-x-4">
+                    <button class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center transition">
+                        <i class="fas fa-undo mr-2"></i> Undo
+                    </button>
+                    <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center transition">
+                        <i class="fas fa-flag mr-2"></i> Resign
+                    </button>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition">
+                        <i class="fas fa-comment-alt mr-2"></i> Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Login Form Submission
+            const loginForm = document.getElementById('loginForm');
+            const guestBtn = document.getElementById('guestBtn');
+            const loginModal = document.getElementById('loginModal');
+            const dashboard = document.getElementById('dashboard');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const userInitial = document.getElementById('userInitial');
+            const playerInitial = document.getElementById('playerInitial');
+            
+            // Room Creation Elements
+            const createRoomBtn = document.getElementById('createRoomBtn');
+            const createRoomModal = document.getElementById('createRoomModal');
+            const closeRoomModal = document.getElementById('closeRoomModal');
+            const generateRoomBtn = document.getElementById('generateRoomBtn');
+            const roomSection = document.getElementById('roomSection');
+            const roomCode = document.getElementById('roomCode');
+            const copyRoomCode = document.getElementById('copyRoomCode');
+            const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+            const startGameBtn = document.getElementById('startGameBtn');
+            const availableRooms = document.getElementById('availableRooms');
+            const gameBoard = document.getElementById('gameBoard');
+            
+            // Handle login form submission
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                
+                // For demo purposes, just show the dashboard
+                loginModal.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+                
+                // Set the username display
+                if (username) {
+                    usernameDisplay.textContent = username;
+                    userInitial.textContent = username.charAt(0).toUpperCase();
+                    playerInitial.textContent = username.charAt(0).toUpperCase();
+                }
+            });
+            
+            // Handle guest login
+            guestBtn.addEventListener('click', function() {
+                loginModal.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+                
+                // Set guest username
+                usernameDisplay.textContent = 'Guest';
+                userInitial.textContent = 'G';
+                playerInitial.textContent = 'G';
+            });
+            
+            // Handle logout
+            logoutBtn.addEventListener('click', function() {
+                dashboard.classList.add('hidden');
+                loginModal.classList.remove('hidden');
+                
+                // Reset form
+                loginForm.reset();
+            });
+            
+            // Room creation modal
+            createRoomBtn.addEventListener('click', function() {
+                createRoomModal.classList.remove('hidden');
+            });
+            
+            closeRoomModal.addEventListener('click', function() {
+                createRoomModal.classList.add('hidden');
+            });
+            
+            // Generate random room code
+            generateRoomBtn.addEventListener('click', function() {
+                // Generate a random 6-character alphanumeric code
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let result = '';
+                for (let i = 0; i < 6; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                
+                roomCode.textContent = result;
+                createRoomModal.classList.add('hidden');
+                roomSection.classList.remove('hidden');
+                availableRooms.classList.add('hidden');
+            });
+            
+            // Copy room code to clipboard
+            copyRoomCode.addEventListener('click', function() {
+                const code = roomCode.textContent;
+                navigator.clipboard.writeText(code).then(function() {
+                    // Show feedback
+                    const originalText = copyRoomCode.innerHTML;
+                    copyRoomCode.innerHTML = '<i class="fas fa-check mr-1"></i> Copied!';
+                    
+                    setTimeout(function() {
+                        copyRoomCode.innerHTML = originalText;
+                    }, 2000);
+                });
+            });
+            
+            // Leave room
+            leaveRoomBtn.addEventListener('click', function() {
+                roomSection.classList.add('hidden');
+                availableRooms.classList.remove('hidden');
+                gameBoard.classList.add('hidden');
+            });
+            
+            // Start game (placeholder)
+            startGameBtn.addEventListener('click', function() {
+                gameBoard.classList.remove('hidden');
+                roomSection.classList.add('hidden');
+                availableRooms.classList.add('hidden');
+            });
+            
+            // Join room buttons in available rooms list
+            document.querySelectorAll('#availableRooms button').forEach(button => {
+                if (!button.disabled) {
+                    button.addEventListener('click', function() {
+                        const roomCard = this.closest('.bg-gray-800');
+                        const roomName = roomCard.querySelector('h3').textContent;
+                        const code = roomCard.querySelector('p').textContent.replace('Code: ', '');
+                        
+                        roomCode.textContent = code;
+                        roomSection.classList.remove('hidden');
+                        availableRooms.classList.add('hidden');
+                        
+                        // For demo, set player initial to first letter of room name
+                        playerInitial.textContent = roomName.charAt(0).toUpperCase();
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
