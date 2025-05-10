@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BD Studio Memaybeo Testing Lobby</title>
+    <link href="lobbystyle.css" rel="stylesheet" type="text/css" media="all">
+    <style>
+        body {
+            background-color: #FBB03B;
+            color: #000000;
+            font-family: Montserrat;
+        }
+    </style>
+</head>
+<body>
+    <article>
+        <header>
+            <h1>BD Studio Memaybeo Project Testing Ground - Lobby</h1>
+            <p>Goal: Create a new game or join an existing game using an ID.</p>
+        </header>
+    </article>
+
+    <div class="container">            <!--Making a "Create new game" option-->         
+        <div>
+            <button class="btn" onclick="createNewGame()">New Game</button>
+        </div>
+        <div>
+            <form id="join_game_form" onsubmit="return joinGame()">
+                <input type="number" class="text-input" id="game_id" placeholder="Enter Game ID">
+                <button type="submit" class="btn">Join Game</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function createNewGame() {
+            const gameId = String(Math.random()).slice(2,8);    /* Generate a random game IDMath.random creates a random decimal number between 0 and 1
+                                                                Then we ".slicelice(2, 8)" to remove the first 2 character 
+                                                                which is "0." and take the next 6 characters (indexed from 3 to 88) which will 
+                                                                be the game ID.
+                                                                The game ID being a 6 digits number is totally INTENTIONAL:)))*/
+                
+                window.location.href = `/map.html?id=${gameId}`;   /*The "map.html" will be replaced with backend later*/
+        }
+
+        function joinGame() {
+            const gameId = document.getElementById("game_id").value.trim();
+            const isValid = /^\d{6}$/.test(gameId);
+
+            if (isValid) {
+                window.location.href = `/map.html?id=${gameId}`;
+            } else {
+                alert("Đm mày thằng nigger, game ID ko hợp lệ");
+            }
+            return false;
+        }
+    </script>
+</body>
+</html>
